@@ -58,7 +58,8 @@ resource "google_dns_record_set" "app-lb" {
 
 # Template
 resource "google_compute_instance_template" "app" {
-  name_prefix = "nginx-vm-template-"
+nane =   
+name_prefix = "nginx-vm-template-"
   disk {
     source_image = "debian-cloud/debian-11"
     auto_delete  = true
@@ -77,56 +78,6 @@ resource "google_compute_instance_template" "app" {
     sudo echo $NAME | sudo tee -a /var/www/html/index.html
     sudo echo '</p></body></html>' | sudo tee -a /var/www/html/index.html
     sudo systemctl restart nginx
-    EOF
-  }
-  network_interface {
-    network    = google_compute_network.app.name
-    subnetwork = google_compute_subnetwork.public_subnet1.name
-    access_config {
-      # Each instance will get an ip which can be used for package managers
-    }
-  }
-  region = var.gcp_region
-  tags   = ["allow-health-check"]
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-resource "google_compute_instance_template" "mail" {
-  name_prefix = "nginx-vm-template-"
-  disk {
-    source_image = "debian-cloud/debian-11"
-    auto_delete  = true
-    boot         = true
-    device_name  = "persistent-disk-0"
-    mode         = "READ_WRITE"
-    type         = "PERSISTENT"
-  }
-  machine_type = "e2-micro"
-  metadata = {
-    startup-script = <<-EOF
-    #!/bin/bash
-    apt update && apt -y install postfix libsasl2-modules
-    sudo sed -i 's/default_transport = error/# default_transport = error/g' /etc/postfix/main.cf
-    sudo sed -i 's/relay_transport = error/# relay_transport = error/g' /etc/postfix/main.cf
-    sudo sed -i 's/relayhost =/relayhost = [smtp.sendgrid.net]:2525/g' /etc/postfix/main.cf
-    sudo sed -i 's/smtp_tls_security_level=may/smtp_tls_security_level = encrypt/g' /etc/postfix/main.cf
-    sudo echo 'smtp_sasl_auth_enable = yes
-    smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
-    header_size_limit = 4096000
-    smtp_sasl_security_options = noanonymous' | sudo tee -a /etc/postfix/main.cf
-    sudo echo [smtp.sendgrid.net]:2525 apikey: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 >> /root/sasl_passwd
-    sudo postmap /root/sasl_passwd
-    sudo rm /root/sasl_passwd
-    sudo chmod 600 /root/sasl_passwd.db
-    sudo mv /root/sasl_passwd.db /etc/postfix/
-    sudo echo 'address {
-    email-domain barisano.cloud;
-    };' | sudo tee -a /root/mailutils.conf
-    sudo mv /root/mailutils.conf /etc/
-    sudo /etc/init.d/postfix restart
-    sudo apt -y install mailutils
     EOF
   }
   network_interface {
